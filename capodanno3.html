@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stappa il Nuovo Anno</title>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .game {
+      background: rgba(0, 0, 0, 0.45);
+      padding: 20px;
+      border-radius: 20px;
+      text-align: center;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: clamp(1.3rem, 5vw, 1.7rem);
+    }
+
+    .emoji {
+      font-size: clamp(4rem, 14vw, 6rem);
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s;
+    }
+
+    .emoji:active {
+      transform: scale(0.9);
+    }
+
+    .stats {
+      margin: 16px 0;
+      font-size: 1.1rem;
+    }
+
+    .progress-bar {
+      height: 16px;
+      background: #333;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 8px 0 16px;
+    }
+
+    .progress {
+      height: 100%;
+      background: #00ffcc;
+      width: 0%;
+      transition: width 0.2s;
+    }
+
+    button {
+      background: #ffffff;
+      color: #000;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: clamp(0.95rem, 4vw, 1.05rem);
+      margin-top: 10px;
+    }
+
+    .message {
+      margin-top: 12px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="game">
+    <h1>Inizia il conto alla rovescia 🥶🫣🎆</h1>
+    <p>Tocca la bottiglia per far saltare il tappo 🍾</p>
+    <p>Premi 60 volte prima che arrivi mezzanotte! 💪🪨</p>
+
+    <div id="bottle" class="emoji">🍾</div>
+
+    <div class="stats">
+      Vai 💥: <span id="hits">0</span> / 60
+    </div>
+
+    <div class="stats">Copritevi gli occhi 🫣</div>
+    <div class="progress-bar">
+      <div id="progress" class="progress"></div>
+    </div>
+
+    <div class="stats">
+      ⏳ Tempo rimasto: <span id="time">10</span>s
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <button onclick="resetGame()">Ricomincia 🔁</button>
+  </div>
+
+  <script>
+    let hits = 0;
+    const maxHits = 60;
+    let timeLeft = 10;
+    let gameOver = false;
+    let started = false;
+    let timerInterval = null;
+
+    const bottleEl = document.getElementById('bottle');
+    const hitsEl = document.getElementById('hits');
+    const progressEl = document.getElementById('progress');
+    const timeEl = document.getElementById('time');
+    const messageEl = document.getElementById('message');
+
+    // 🔓 Sblocca l'audio al primo tocco (mobile-friendly)
+    document.body.addEventListener('pointerdown', () => {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      ctx.resume();
+    }, { once: true });
+
+    bottleEl.addEventListener('pointerdown', () => {
+      if (gameOver) return;
+
+      // Avvio al primo tocco
+      if (!started) {
+        started = true;
+        startTimer();
+        messageEl.textContent = 'Forza! 🎉';
+      }
+
+      hits++;
+      hitsEl.textContent = hits;
+
+      const percent = (hits / maxHits) * 100;
+      progressEl.style.width = percent + '%';
+
+      if (hits >= maxHits) {
+        winGame();
+      }
+    });
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timeEl.textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+          loseGame();
+        }
+      }, 1000);
+    }
+
+    function winGame() {
+      gameOver = true;
+      clearInterval(timerInterval);
+
+      playPopSound();          // 🔊 STAPPO
+      navigator.vibrate?.(200); // 📳 vibrazione (se supportata)
+
+      bottleEl.textContent = '🎉';
+      messageEl.textContent = 'BUON ANNOOOO!!! 🥂✨';
+    }
+
+    function loseGame() {
+      gameOver = true;
+      clearInterval(timerInterval);
+      messageEl.textContent = 'Troppo lento… niente brindisi 😢';
+    }
+
+    function resetGame() {
+      hits = 0;
+      timeLeft = 10;
+      gameOver = false;
+      started = false;
+
+      hitsEl.textContent = '0';
+      timeEl.textContent = '10';
+      progressEl.style.width = '0%';
+      bottleEl.textContent = '🍾';
+      messageEl.textContent = '';
+
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    // 🍾 SUONO POP GENERATO VIA JAVASCRIPT
+    function playPopSound() {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(120, audioCtx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(
+        600,
+        audioCtx.currentTime + 0.15
+      );
+
+      gainNode.gain.setValueAtTime(0.6, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioCtx.currentTime + 0.2
+      );
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.2);
+    }
+  </script>
+</body>
+</html>
